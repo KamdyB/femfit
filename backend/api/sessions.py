@@ -1,7 +1,5 @@
 # backend/api/sessions.py
 """
-backend/api/sessions.py
-
 Logs a single training session for a player, then immediately returns
 that player's current risk assessment computed from their full session
 history. This is the endpoint SessionEntryForm calls.
@@ -10,7 +8,9 @@ history. This is the endpoint SessionEntryForm calls.
 from datetime import date
 
 from fastapi import APIRouter
+from pydantic import BaseModel
 
+from backend.api.score import ScoreResponse
 from backend.data.session_store import session_store
 from backend.scoring.composite_score import composite_score
 from backend.scoring.load_calculator import acute_chronic_from_sessions
@@ -18,32 +18,27 @@ from backend.scoring.load_calculator import acute_chronic_from_sessions
 router = APIRouter()
 
 
-class SessionScoreResponse:
-    pass  # shape reused from score.py's ScoreResponse below
-
-
-from backend.api.score import ScoreResponse  # noqa: E402
+class SessionRequest(BaseModel):
+    player_id: str
+    date_str: str
+    duration_minutes: float
+    rpe: float
+    menstruating: bool | None = None
+    height_cm: float | None = None
+    height_cm_6mo_ago: float | None = None
 
 
 @router.post("/sessions", response_model=ScoreResponse)
-def log_session(
-    player_id: str,
-    date_str: str,
-    duration_minutes: float,
-    rpe: float,
-    menstruating: bool | None = None,
-    height_cm: float | None = None,
-    height_cm_6mo_ago: float | None = None,
-) -> ScoreResponse:
+def log_session(req: SessionRequest) -> ScoreResponse:
     session_store.log_session(
-        player_id,
-        {"date": date_str, "duration_minutes": duration_minutes, "rpe": rpe},
+        req.player_id,
+        {"date": req.date_str, "duration_minutes": req.duration_minutes, "rpe": req.rpe},
     )
-    session_store.update_profile(player_id, menstruating, height_cm, height_cm_6mo_ago)
+    session_store.update_profile(req.player_id, req.menstruating, req.height_cm, req.height_cm_6mo_ago)
 
-    profile = session_store.get_profile(player_id)
-    sessions = session_store.get_sessions(player_id)
-    acute, chronic = acute_chronic_from_sessions(sessions, date.fromisoformat(date_str))
+    profile = session_store.get_profile(req.player_id)
+    sessions = session_store.get_sessions(req.player_id)
+    acute, chronic = acute_chronic_from_sessions(sessions, date.fromisoformat(req.date_str))
 
     result = composite_score(
         acute_load=acute,
@@ -54,7 +49,7 @@ def log_session(
     )
 
     return ScoreResponse(
-        player_id=player_id,
+        player_id=req.player_id,
         base_acwr=result["base_acwr"],
         cycle_modifier=result["cycle_modifier"],
         maturation_modifier=result["maturation_modifier"],
