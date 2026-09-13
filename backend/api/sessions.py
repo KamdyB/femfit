@@ -7,7 +7,7 @@ history. This is the endpoint SessionEntryForm calls.
 
 from datetime import date
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from backend.api.score import ScoreResponse
@@ -30,6 +30,11 @@ class SessionRequest(BaseModel):
 
 @router.post("/sessions", response_model=ScoreResponse)
 def log_session(req: SessionRequest) -> ScoreResponse:
+    if req.duration_minutes <= 0 or req.rpe <= 0:
+        raise HTTPException(
+            status_code=422,
+            detail="Duration and RPE must both be greater than zero.",
+        )
     session_store.log_session(
         req.player_id,
         {"date": req.date_str, "duration_minutes": req.duration_minutes, "rpe": req.rpe},

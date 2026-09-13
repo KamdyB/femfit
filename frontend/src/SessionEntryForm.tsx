@@ -23,6 +23,10 @@ export function SessionEntryForm({
       setError("Player name is required.");
       return;
     }
+    if (durationMinutes <= 0 || rpe <= 0) {
+      setError("Enter a duration and RPE greater than zero.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     const payload: SessionPayload = {
