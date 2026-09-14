@@ -43,7 +43,7 @@ def log_session(req: SessionRequest) -> ScoreResponse:
 
     profile = session_store.get_profile(req.player_id)
     sessions = session_store.get_sessions(req.player_id)
-    acute, chronic = acute_chronic_from_sessions(sessions, date.fromisoformat(req.date_str))
+    acute, chronic, days_of_history = acute_chronic_from_sessions(sessions, date.fromisoformat(req.date_str))
 
     result = composite_score(
         acute_load=acute,
@@ -51,6 +51,7 @@ def log_session(req: SessionRequest) -> ScoreResponse:
         menstruating=profile.get("menstruating"),
         height_cm=profile.get("height_cm"),
         height_cm_6mo_ago=profile.get("height_cm_6mo_ago"),
+        days_of_history=days_of_history,
     )
 
     return ScoreResponse(

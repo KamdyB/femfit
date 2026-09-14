@@ -30,18 +30,25 @@ def _daily_loads(sessions: list[Session]) -> dict[date, float]:
     return daily
 
 
-def _rolling_average(daily: dict[date, float], as_of: date, window_days: int) -> float:
+def _rolling_average(
+    daily: dict[date, float], as_of: date, window_days: int, days_available: int
+) -> float:
+    effective_window = min(window_days, max(days_available, 1))
     total = sum(
         daily.get(as_of - timedelta(days=i), 0.0)
-        for i in range(window_days)
+        for i in range(effective_window)
     )
-    return total / window_days
+    return total / effective_window
 
 
 def acute_chronic_from_sessions(
     sessions: list[Session], as_of: date
-) -> tuple[float, float]:
+) -> tuple[float, float, int]:
     daily = _daily_loads(sessions)
-    acute = _rolling_average(daily, as_of, 7)
-    chronic = _rolling_average(daily, as_of, 28)
-    return acute, chronic
+    if not daily:
+        return 0.0, 0.0, 0
+    earliest = min(daily.keys())
+    days_available = (as_of - earliest).days + 1
+    acute = _rolling_average(daily, as_of, 7, days_available)
+    chronic = _rolling_average(daily, as_of, 28, days_available)
+    return acute, chronic, days_available
