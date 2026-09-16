@@ -1,11 +1,5 @@
-pandas
-numpy
-scipy
-scikit-learn
-statsmodels
-matplotlib
-seaborn
 fastapi
 uvicorn
 pydantic
 pytest
+openai

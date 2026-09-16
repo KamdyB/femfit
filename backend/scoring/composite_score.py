@@ -60,6 +60,8 @@ def composite_score(
     data_points_provided = sum(
         x is not None for x in (menstruating, height_cm, height_cm_6mo_ago)
     )
+    confidence = round(0.6 + 0.2 * data_points_provided / 3, 2)
+    
     if days_of_history < 28:
         confidence = round(confidence * (days_of_history / 28), 2)
         explanation.append(

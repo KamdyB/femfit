@@ -10,12 +10,22 @@ from datetime import date
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from backend.api.score import ScoreResponse
 from backend.data.session_store import session_store
 from backend.scoring.composite_score import composite_score
 from backend.scoring.load_calculator import acute_chronic_from_sessions
 
 router = APIRouter()
+
+
+class ScoreResponse(BaseModel):
+    player_id: str
+    base_acwr: float
+    cycle_modifier: float
+    maturation_modifier: float
+    adjusted_score: float
+    risk_band: str
+    explanation: list[str]
+    confidence: float
 
 
 class SessionRequest(BaseModel):
