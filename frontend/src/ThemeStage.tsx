@@ -1,10 +1,19 @@
-// frontend/src/ThemeStage.tsx, new file, replaces ThemeToggle.tsx
 import { useState, ReactNode } from "react";
 
 type Theme = "light" | "dark";
 
+function systemPrefersDark(): boolean {
+  return typeof window !== "undefined" && window.matchMedia
+    ? window.matchMedia("(prefers-color-scheme: dark)").matches
+    : false;
+}
+
 export function ThemeStage({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("light");
+  const [theme, setTheme] = useState<Theme>(() => {
+    const initial: Theme = systemPrefersDark() ? "dark" : "light";
+    document.documentElement.dataset.theme = initial;
+    return initial;
+  });
   const [turning, setTurning] = useState(false);
 
   function toggleTheme() {
@@ -30,12 +39,12 @@ export function ThemeStage({ children }: { children: ReactNode }) {
         >
           {theme === "light" ? (
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-               <circle cx="12" cy="12" r="4.2" />
-               <path d="M12 2.5v2.4M12 19.1v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7" />
+              <circle cx="12" cy="12" r="4.2" />
+              <path d="M12 2.5v2.4M12 19.1v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7" />
             </svg>
           ) : (
             <svg viewBox="0 0 24 24" fill="currentColor">
-               <path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z" />
+              <path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z" />
             </svg>
           )}
         </button>

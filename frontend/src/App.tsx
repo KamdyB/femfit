@@ -1,14 +1,20 @@
-// frontend/src/App.tsx, full file
 import { useState } from "react";
 import { ScoreResponse } from "./types";
 import { SessionEntryForm } from "./SessionEntryForm";
 import { RosterView, RiskLevel } from "./RosterView";
+import { Glossary } from "./Glossary";
 
 function riskLevel(band: string): RiskLevel {
   if (band === "OPTIMAL") return "stable";
   if (band === "HIGH_RISK") return "elevated";
   return "watch";
 }
+
+const TODAY = new Date().toLocaleDateString(undefined, {
+  weekday: "long",
+  month: "long",
+  day: "numeric",
+});
 
 export default function App() {
   const [roster, setRoster] = useState<Record<string, ScoreResponse>>({});
@@ -23,6 +29,10 @@ export default function App() {
   });
   const total = Object.keys(roster).length;
 
+  const needsCheck = Object.entries(roster)
+    .filter(([, r]) => riskLevel(r.risk_band) !== "stable")
+    .sort((a, b) => b[1].adjusted_score - a[1].adjusted_score);
+
   return (
     <div className="page">
       <div className="header-row">
@@ -30,10 +40,29 @@ export default function App() {
           <p className="eyebrow">FemFit</p>
           <h1 className="display-title">Girls' workload intelligence</h1>
         </div>
+        <p className="today-date">{TODAY}</p>
       </div>
 
       <div className="dashboard">
         <div>
+          {total > 0 && (
+            <div className="check-today">
+              <p className="section-title">Who to check today</p>
+              {needsCheck.length === 0 ? (
+                <p className="check-today__clear">Nobody flagged today, all clear.</p>
+              ) : (
+                <ul className="check-today__list">
+                  {needsCheck.map(([name, r]) => (
+                    <li key={name} data-level={riskLevel(r.risk_band)}>
+                      <span>{name}</span>
+                      <span>{r.risk_band.replace("_", " ")}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
           <p className="section-title">Roster</p>
           {total === 0 ? (
             <p style={{ color: "var(--muted)" }}>No sessions logged yet.</p>
@@ -62,8 +91,17 @@ export default function App() {
           </div>
           <hr className="rule" />
           <SessionEntryForm onScored={handleScored} />
+          <hr className="rule" />
+          <Glossary />
         </div>
       </div>
+
+      <p className="disclaimer">
+        FemFit is a workload-monitoring tool for coaches, not a medical device. It does not
+        diagnose, treat, or predict injury. Cycle and growth modifiers shown here are currently
+        neutral placeholders pending validation, not clinical findings. For any health concern,
+        consult a qualified medical professional.
+      </p>
     </div>
   );
 }
