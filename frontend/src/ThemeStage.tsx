@@ -1,3 +1,4 @@
+// frontend/src/ThemeStage.tsx
 import { useState, ReactNode } from "react";
 
 type Theme = "light" | "dark";

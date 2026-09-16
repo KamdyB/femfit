@@ -1,4 +1,4 @@
-# backend/api/sessions.py
+# backend/api/sessions.py, replace the whole file
 """
 Logs a single training session for a player, then immediately returns
 that player's current risk assessment computed from their full session
@@ -23,6 +23,7 @@ class ScoreResponse(BaseModel):
     cycle_modifier: float
     maturation_modifier: float
     adjusted_score: float
+    previous_adjusted_score: float | None
     risk_band: str
     explanation: list[str]
     confidence: float
@@ -45,6 +46,30 @@ def log_session(req: SessionRequest) -> ScoreResponse:
             status_code=422,
             detail="Duration and RPE must both be greater than zero.",
         )
+    session_date = date.fromisoformat(req.date_str)
+    if session_date > date.today():
+        raise HTTPException(
+            status_code=422,
+            detail="Session date cannot be in the future. Log a session after it happens, not before.",
+        )
+
+    prior_sessions = session_store.get_sessions(req.player_id)
+    previous_adjusted_score: float | None = None
+    if prior_sessions:
+        prior_profile = session_store.get_profile(req.player_id)
+        last_prior_date = date.fromisoformat(max(s["date"] for s in prior_sessions))
+        prev_acute, prev_chronic, prev_days = acute_chronic_from_sessions(
+            prior_sessions, last_prior_date
+        )
+        previous_adjusted_score = composite_score(
+            acute_load=prev_acute,
+            chronic_load=prev_chronic,
+            menstruating=prior_profile.get("menstruating"),
+            height_cm=prior_profile.get("height_cm"),
+            height_cm_6mo_ago=prior_profile.get("height_cm_6mo_ago"),
+            days_of_history=prev_days,
+        )["adjusted_score"]
+
     session_store.log_session(
         req.player_id,
         {"date": req.date_str, "duration_minutes": req.duration_minutes, "rpe": req.rpe},
@@ -53,7 +78,7 @@ def log_session(req: SessionRequest) -> ScoreResponse:
 
     profile = session_store.get_profile(req.player_id)
     sessions = session_store.get_sessions(req.player_id)
-    acute, chronic, days_of_history = acute_chronic_from_sessions(sessions, date.fromisoformat(req.date_str))
+    acute, chronic, days_of_history = acute_chronic_from_sessions(sessions, session_date)
 
     result = composite_score(
         acute_load=acute,
@@ -70,6 +95,7 @@ def log_session(req: SessionRequest) -> ScoreResponse:
         cycle_modifier=result["cycle_modifier"],
         maturation_modifier=result["maturation_modifier"],
         adjusted_score=result["adjusted_score"],
+        previous_adjusted_score=previous_adjusted_score,
         risk_band=result["risk_band"],
         explanation=result["explanation"],
         confidence=result["confidence"],

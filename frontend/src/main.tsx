@@ -1,4 +1,4 @@
-// frontend/src/main.tsx, full file
+// frontend/src/main.tsx
 import "./theme.css";
 import React from "react";
 import ReactDOM from "react-dom/client";

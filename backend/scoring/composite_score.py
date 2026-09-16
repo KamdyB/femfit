@@ -51,6 +51,12 @@ def composite_score(
         explanation.append(
             "Growth data was not entered, so no maturation-based adjustment was applied."
         )
+    elif height_cm - height_cm_6mo_ago < -1.0:
+        explanation.append(
+            "Recorded height is lower than it was 6 months ago, which isn't biologically "
+            "expected for a growing youth athlete. This looks like a data-entry error, so "
+            "growth-rate context was not used for this score. Double-check both height values."
+        )
     else:
         explanation.append(
             "Maturation-based adjustment is currently a neutral placeholder pending validation, "

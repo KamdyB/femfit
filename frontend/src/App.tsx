@@ -1,3 +1,4 @@
+// frontend/src/App.tsx
 import { useState } from "react";
 import { ScoreResponse } from "./types";
 import { SessionEntryForm } from "./SessionEntryForm";
@@ -37,7 +38,7 @@ export default function App() {
     <div className="page">
       <div className="header-row">
         <div>
-          <p className="eyebrow">FemFit</p>
+          <p className="eyebrow">Fieldnote</p>
           <h1 className="display-title">Girls' workload intelligence</h1>
         </div>
         <p className="today-date">{TODAY}</p>
@@ -97,7 +98,7 @@ export default function App() {
       </div>
 
       <p className="disclaimer">
-        FemFit is a workload-monitoring tool for coaches, not a medical device. It does not
+        Fieldnote is a workload-monitoring tool for coaches, not a medical device. It does not
         diagnose, treat, or predict injury. Cycle and growth modifiers shown here are currently
         neutral placeholders pending validation, not clinical findings. For any health concern,
         consult a qualified medical professional.

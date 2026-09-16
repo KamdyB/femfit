@@ -1,4 +1,4 @@
-// frontend/src/types.ts
+// frontend/src/types.ts — replace the entire file
 export interface SessionPayload {
   player_id: string;
   date_str: string;
@@ -15,6 +15,7 @@ export interface ScoreResponse {
   cycle_modifier: number;
   maturation_modifier: number;
   adjusted_score: number;
+  previous_adjusted_score: number | null;
   risk_band: string;
   explanation: string[];
   confidence: number;

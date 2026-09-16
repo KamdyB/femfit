@@ -1,7 +1,9 @@
-// frontend/src/SessionEntryForm.tsx, full file
+// frontend/src/SessionEntryForm.tsx — replace the entire file
 import { useState } from "react";
 import { SessionPayload, ScoreResponse } from "./types";
 import { logSession } from "./api";
+
+const TODAY_ISO = new Date().toISOString().slice(0, 10);
 
 export function SessionEntryForm({
   onScored,
@@ -28,6 +30,10 @@ export function SessionEntryForm({
     }
     if (durationMinutes <= 0 || rpe <= 0) {
       setError("Enter a duration and RPE greater than zero.");
+      return;
+    }
+    if (dateStr > TODAY_ISO) {
+      setError("Session date cannot be in the future.");
       return;
     }
     setSubmitting(true);
@@ -66,7 +72,7 @@ export function SessionEntryForm({
       <div className="field-row">
         <div className="field-group">
           <label className="field-group__label" htmlFor="session-date">Date</label>
-          <input id="session-date" type="date" value={dateStr} onChange={e => setDateStr(e.target.value)} />
+          <input id="session-date" type="date" value={dateStr} max={TODAY_ISO} onChange={e => setDateStr(e.target.value)} />
         </div>
         <div className="field-group">
           <label className="field-group__label" htmlFor="duration">Session, minutes</label>
