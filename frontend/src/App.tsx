@@ -5,6 +5,14 @@ import { SessionEntryForm } from "./SessionEntryForm";
 import { RosterView, RiskLevel } from "./RosterView";
 import { Glossary } from "./Glossary";
 
+type TeamType = "girls" | "boys" | "mixed";
+
+const TEAM_TITLES: Record<TeamType, string> = {
+  girls: "Girls' workload intelligence",
+  boys: "Boys' workload intelligence",
+  mixed: "Unisex team intelligence",
+};
+
 function riskLevel(band: string): RiskLevel {
   if (band === "OPTIMAL") return "stable";
   if (band === "HIGH_RISK") return "elevated";
@@ -19,6 +27,15 @@ const TODAY = new Date().toLocaleDateString(undefined, {
 
 export default function App() {
   const [roster, setRoster] = useState<Record<string, ScoreResponse>>({});
+  const [teamType, setTeamType] = useState<TeamType>(() => {
+    document.documentElement.dataset.team = "girls";
+    return "girls";
+  });
+
+  const handleTeamChange = (next: TeamType) => {
+    document.documentElement.dataset.team = next;
+    setTeamType(next);
+  };
 
   const handleScored = (playerName: string, result: ScoreResponse) => {
     setRoster(prev => ({ ...prev, [playerName]: result }));
@@ -39,7 +56,15 @@ export default function App() {
       <div className="header-row">
         <div>
           <p className="eyebrow">Fieldnote</p>
-          <h1 className="display-title">Girls' workload intelligence</h1>
+          <h1 className="display-title">{TEAM_TITLES[teamType]}</h1>
+          <label className="team-type">
+            Team
+            <select value={teamType} onChange={e => handleTeamChange(e.target.value as TeamType)}>
+              <option value="girls">Girls</option>
+              <option value="boys">Boys</option>
+              <option value="mixed">Mixed</option>
+            </select>
+          </label>
         </div>
         <p className="today-date">{TODAY}</p>
       </div>
@@ -91,7 +116,7 @@ export default function App() {
             </div>
           </div>
           <hr className="rule" />
-          <SessionEntryForm onScored={handleScored} />
+          <SessionEntryForm onScored={handleScored} showCycleField={teamType !== "boys"} />
           <hr className="rule" />
           <Glossary />
         </div>

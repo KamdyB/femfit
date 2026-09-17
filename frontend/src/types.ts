@@ -1,4 +1,4 @@
-// frontend/src/types.ts — replace the entire file
+// frontend/src/types.ts
 export interface SessionPayload {
   player_id: string;
   date_str: string;

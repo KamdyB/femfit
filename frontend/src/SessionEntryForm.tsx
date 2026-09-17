@@ -1,4 +1,4 @@
-// frontend/src/SessionEntryForm.tsx — replace the entire file
+// frontend/src/SessionEntryForm.tsx
 import { useState } from "react";
 import { SessionPayload, ScoreResponse } from "./types";
 import { logSession } from "./api";
@@ -7,8 +7,10 @@ const TODAY_ISO = new Date().toISOString().slice(0, 10);
 
 export function SessionEntryForm({
   onScored,
+  showCycleField,
 }: {
   onScored: (playerName: string, result: ScoreResponse) => void;
+  showCycleField: boolean;
 }) {
   const [name, setName] = useState("");
   const [dateStr, setDateStr] = useState(new Date().toISOString().slice(0, 10));
@@ -97,12 +99,14 @@ export function SessionEntryForm({
 
       {showContext && (
         <>
-          <div className="field-group">
-            <label className="field-group__label" htmlFor="menstruating">
-              <input id="menstruating" type="checkbox" checked={menstruating} onChange={e => setMenstruating(e.target.checked)} style={{ marginRight: "0.5rem" }} />
-              Menstruating today
-            </label>
-          </div>
+          {showCycleField && (
+            <div className="field-group">
+              <label className="field-group__label" htmlFor="menstruating">
+                <input id="menstruating" type="checkbox" checked={menstruating} onChange={e => setMenstruating(e.target.checked)} style={{ marginRight: "0.5rem" }} />
+                Menstruating today
+              </label>
+            </div>
+          )}
           <div className="field-row">
             <div className="field-group">
               <label className="field-group__label" htmlFor="height-now">Height cm</label>

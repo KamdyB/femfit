@@ -1,4 +1,4 @@
-// frontend/src/RosterView.tsx — replace the entire file
+// frontend/src/RosterView.tsx
 import { ScoreResponse } from "./types";
 
 export type RiskLevel = "stable" | "watch" | "elevated";
