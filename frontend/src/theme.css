@@ -394,4 +394,6 @@ input, select { border-radius: 12px; }
 input, select { border-radius: 12px; }
 .directory-row { border-radius: 14px; }
 .chart-legend span { border-radius: 999px; }
+.footer-link { text-align: center; margin-top: 0.75rem; }
+.footer-link a { color: var(--muted); font-size: 0.85rem; }
 
