@@ -1,20 +1,22 @@
 # backend/api/sessions.py, replace the whole file
 """
-Logs a single training session for a player, then immediately returns
-that player's current risk assessment computed from their full session
-history. This is the endpoint SessionEntryForm calls.
+Logs a single training session for a registered player, then immediately
+returns that player's current risk assessment computed from their full
+session history. This is the endpoint SessionEntryForm calls.
 """
-
 from datetime import date
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+from backend.data.player_store import player_store
 from backend.data.session_store import session_store
-from backend.scoring.composite_score import composite_score
-from backend.scoring.load_calculator import acute_chronic_from_sessions
+from backend.scoring.assessment import assess
 
 router = APIRouter()
+
+# There is no legitimate youth training session several hours long.
+MAX_SESSION_MINUTES = 180
 
 
 class ScoreResponse(BaseModel):
@@ -32,8 +34,8 @@ class ScoreResponse(BaseModel):
 class SessionRequest(BaseModel):
     player_id: str
     date_str: str
-    duration_minutes: float
-    rpe: float
+    duration_minutes: float = Field(gt=0, le=MAX_SESSION_MINUTES)
+    rpe: float = Field(gt=0, le=10)
     menstruating: bool | None = None
     height_cm: float | None = None
     height_cm_6mo_ago: float | None = None
@@ -41,10 +43,10 @@ class SessionRequest(BaseModel):
 
 @router.post("/sessions", response_model=ScoreResponse)
 def log_session(req: SessionRequest) -> ScoreResponse:
-    if req.duration_minutes <= 0 or req.rpe <= 0:
+    if player_store.get(req.player_id) is None:
         raise HTTPException(
-            status_code=422,
-            detail="Duration and RPE must both be greater than zero.",
+            status_code=404,
+            detail="Player not found. Register the player first, then log sessions against their id.",
         )
     session_date = date.fromisoformat(req.date_str)
     if session_date > date.today():
@@ -56,38 +58,25 @@ def log_session(req: SessionRequest) -> ScoreResponse:
     prior_sessions = session_store.get_sessions(req.player_id)
     previous_adjusted_score: float | None = None
     if prior_sessions:
+        # The previous standing uses the profile as it stood before this
+        # session's context was saved, exactly as before.
         prior_profile = session_store.get_profile(req.player_id)
         last_prior_date = date.fromisoformat(max(s["date"] for s in prior_sessions))
-        prev_acute, prev_chronic, prev_days = acute_chronic_from_sessions(
-            prior_sessions, last_prior_date
-        )
-        previous_adjusted_score = composite_score(
-            acute_load=prev_acute,
-            chronic_load=prev_chronic,
-            menstruating=prior_profile.get("menstruating"),
-            height_cm=prior_profile.get("height_cm"),
-            height_cm_6mo_ago=prior_profile.get("height_cm_6mo_ago"),
-            days_of_history=prev_days,
-        )["adjusted_score"]
+        previous_adjusted_score = assess(prior_sessions, last_prior_date, prior_profile)[
+            "adjusted_score"
+        ]
 
     session_store.log_session(
         req.player_id,
         {"date": req.date_str, "duration_minutes": req.duration_minutes, "rpe": req.rpe},
     )
-    session_store.update_profile(req.player_id, req.menstruating, req.height_cm, req.height_cm_6mo_ago)
+    session_store.update_profile(
+        req.player_id, req.menstruating, req.height_cm, req.height_cm_6mo_ago
+    )
 
     profile = session_store.get_profile(req.player_id)
     sessions = session_store.get_sessions(req.player_id)
-    acute, chronic, days_of_history = acute_chronic_from_sessions(sessions, session_date)
-
-    result = composite_score(
-        acute_load=acute,
-        chronic_load=chronic,
-        menstruating=profile.get("menstruating"),
-        height_cm=profile.get("height_cm"),
-        height_cm_6mo_ago=profile.get("height_cm_6mo_ago"),
-        days_of_history=days_of_history,
-    )
+    result = assess(sessions, session_date, profile)
 
     return ScoreResponse(
         player_id=req.player_id,

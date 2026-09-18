@@ -1,4 +1,5 @@
 // frontend/src/types.ts
+
 export interface SessionPayload {
   player_id: string;
   date_str: string;
@@ -19,4 +20,22 @@ export interface ScoreResponse {
   risk_band: string;
   explanation: string[];
   confidence: number;
+}
+
+export type TeamType = "girls" | "boys" | "mixed";
+
+export interface Player {
+  player_id: string;
+  name: string;
+  team_type: TeamType;
+  registered_date: string;
+}
+
+export interface HistoryPoint {
+  date: string;
+  session_load: number;
+  base_acwr: number | null;
+  adjusted_score: number | null;
+  risk_band: string | null;
+  confidence: number | null;
 }

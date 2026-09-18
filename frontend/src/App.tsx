@@ -1,23 +1,19 @@
 // frontend/src/App.tsx
-import { useState } from "react";
-import { ScoreResponse } from "./types";
+import { useEffect, useState } from "react";
+import { HistoryPoint, Player, ScoreResponse, TeamType } from "./types";
+import { fetchPlayerHistory, fetchPlayers, registerPlayer } from "./api";
 import { SessionEntryForm } from "./SessionEntryForm";
-import { RosterView, RiskLevel } from "./RosterView";
+import { PlayerDirectory } from "./PlayerDirectory";
+import { PlayerDetailView } from "./PlayerDetailView";
+import { RosterView, RosterEntry } from "./RosterView";
+import { RiskLevel, riskLevel } from "./risk";
 import { Glossary } from "./Glossary";
-
-type TeamType = "girls" | "boys" | "mixed";
 
 const TEAM_TITLES: Record<TeamType, string> = {
   girls: "Girls' workload intelligence",
   boys: "Boys' workload intelligence",
   mixed: "Unisex team intelligence",
 };
-
-function riskLevel(band: string): RiskLevel {
-  if (band === "OPTIMAL") return "stable";
-  if (band === "HIGH_RISK") return "elevated";
-  return "watch";
-}
 
 const TODAY = new Date().toLocaleDateString(undefined, {
   weekday: "long",
@@ -26,30 +22,71 @@ const TODAY = new Date().toLocaleDateString(undefined, {
 });
 
 export default function App() {
-  const [roster, setRoster] = useState<Record<string, ScoreResponse>>({});
   const [teamType, setTeamType] = useState<TeamType>(() => {
     document.documentElement.dataset.team = "girls";
     return "girls";
   });
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [roster, setRoster] = useState<Record<string, ScoreResponse>>({});
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [history, setHistory] = useState<HistoryPoint[] | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchPlayers(teamType)
+      .then(list => { if (!cancelled) setPlayers(list); })
+      .catch(() => { if (!cancelled) setPlayers([]); });
+    return () => { cancelled = true; };
+  }, [teamType]);
+
+  useEffect(() => {
+    if (!detailId) {
+      setHistory(null);
+      setHistoryError(null);
+      return;
+    }
+    let cancelled = false;
+    setHistoryLoading(true);
+    setHistoryError(null);
+    fetchPlayerHistory(detailId)
+      .then(points => { if (!cancelled) setHistory(points); })
+      .catch(() => { if (!cancelled) setHistoryError("Could not load this player's history."); })
+      .finally(() => { if (!cancelled) setHistoryLoading(false); });
+    return () => { cancelled = true; };
+  }, [detailId]);
 
   const handleTeamChange = (next: TeamType) => {
     document.documentElement.dataset.team = next;
     setTeamType(next);
+    setDetailId(null); // never carry a player from one team into another
   };
 
-  const handleScored = (playerName: string, result: ScoreResponse) => {
-    setRoster(prev => ({ ...prev, [playerName]: result }));
+  const handleAddPlayer = async (name: string) => {
+    await registerPlayer(name, teamType);
+    setPlayers(await fetchPlayers(teamType));
   };
+
+  const handleScored = (id: string, result: ScoreResponse) => {
+    setRoster(prev => ({ ...prev, [id]: result }));
+  };
+
+  const playersById = new Map(players.map((p): [string, Player] => [p.player_id, p]));
+  const teamRoster: RosterEntry[] = Object.entries(roster)
+    .filter(([id]) => playersById.has(id))
+    .map(([id, result]) => ({
+      playerId: id,
+      name: playersById.get(id)?.name ?? id,
+      result,
+    }))
+    .sort((a, b) => b.result.adjusted_score - a.result.adjusted_score);
 
   const counts: Record<RiskLevel, number> = { stable: 0, watch: 0, elevated: 0 };
-  Object.values(roster).forEach(r => {
-    counts[riskLevel(r.risk_band)] += 1;
-  });
-  const total = Object.keys(roster).length;
+  teamRoster.forEach(entry => { counts[riskLevel(entry.result.risk_band)] += 1; });
 
-  const needsCheck = Object.entries(roster)
-    .filter(([, r]) => riskLevel(r.risk_band) !== "stable")
-    .sort((a, b) => b[1].adjusted_score - a[1].adjusted_score);
+  const needsCheck = teamRoster.filter(entry => riskLevel(entry.result.risk_band) !== "stable");
+  const detailPlayer = detailId ? playersById.get(detailId) ?? null : null;
 
   return (
     <div className="page">
@@ -68,35 +105,51 @@ export default function App() {
         </div>
         <p className="today-date">{TODAY}</p>
       </div>
-
       <div className="dashboard">
         <div>
-          {total > 0 && (
+          {detailPlayer && (
+            <PlayerDetailView
+              player={detailPlayer}
+              history={history}
+              loading={historyLoading}
+              error={historyError}
+              onClose={() => setDetailId(null)}
+            />
+          )}
+          <PlayerDirectory
+            players={players}
+            selectedPlayerId={detailId}
+            onSelect={setDetailId}
+            onAdd={handleAddPlayer}
+          />
+          {teamRoster.length > 0 && (
             <div className="check-today">
               <p className="section-title">Who to check today</p>
               {needsCheck.length === 0 ? (
                 <p className="check-today__clear">Nobody flagged today, all clear.</p>
               ) : (
                 <ul className="check-today__list">
-                  {needsCheck.map(([name, r]) => (
-                    <li key={name} data-level={riskLevel(r.risk_band)}>
-                      <span>{name}</span>
-                      <span>{r.risk_band.replace("_", " ")}</span>
+                  {needsCheck.map(entry => (
+                    <li
+                      key={entry.playerId}
+                      data-level={riskLevel(entry.result.risk_band)}
+                      onClick={() => setDetailId(entry.playerId)}
+                    >
+                      <span>{entry.name}</span>
+                      <span>{entry.result.risk_band.replace("_", " ")}</span>
                     </li>
                   ))}
                 </ul>
               )}
             </div>
           )}
-
           <p className="section-title">Roster</p>
-          {total === 0 ? (
-            <p style={{ color: "var(--muted)" }}>No sessions logged yet.</p>
+          {teamRoster.length === 0 ? (
+            <p className="empty-note">No sessions logged yet for this team.</p>
           ) : (
-            <RosterView roster={roster} riskLevel={riskLevel} />
+            <RosterView entries={teamRoster} onSelect={setDetailId} />
           )}
         </div>
-
         <div>
           <div className="panel">
             <p className="section-title">Monitoring</p>
@@ -116,12 +169,15 @@ export default function App() {
             </div>
           </div>
           <hr className="rule" />
-          <SessionEntryForm onScored={handleScored} showCycleField={teamType !== "boys"} />
+          <SessionEntryForm
+            players={players}
+            showCycleField={teamType !== "boys"}
+            onScored={handleScored}
+          />
           <hr className="rule" />
           <Glossary />
         </div>
       </div>
-
       <p className="disclaimer">
         Fieldnote is a workload-monitoring tool for coaches, not a medical device. It does not
         diagnose, treat, or predict injury. Cycle and growth modifiers shown here are currently

@@ -352,3 +352,46 @@ body {
   border-color: var(--focus);
   outline: none;
 }
+/* ---- Addendum 2: team directory, player detail, charts ---- */
+.player-directory { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.25rem; }
+.directory-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.directory-row {
+  display: flex; justify-content: space-between; align-items: baseline; width: 100%;
+  padding: 0.6rem 0.9rem; border: 1px solid rgba(127, 127, 127, 0.25);
+  border-radius: 14px; background: transparent; color: inherit;
+  font: inherit; cursor: pointer; text-align: left;
+}
+.directory-row:hover, .directory-row--active { border-color: currentColor; }
+.directory-row--active { background: rgba(127, 127, 127, 0.12); }
+.directory-row__meta { opacity: 0.65; font-size: 0.8rem; }
+.player-detail { margin-bottom: 1.25rem; }
+.player-detail__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.player-detail__name { margin: 0.2rem 0 0; font-size: 1.4rem; }
+.player-detail__meta { color: var(--muted); font-size: 0.85rem; margin: 0.2rem 0 0; }
+.player-detail__summary { display: flex; gap: 1.25rem; margin: 0.9rem 0; font-size: 0.95rem; align-items: baseline; }
+.player-detail__summary [data-level="elevated"] { font-weight: 600; }
+.acwr-chart, .load-sparkline { color: inherit; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 0.5rem; font-size: 0.75rem; margin-bottom: 0.5rem; }
+.chart-legend span { padding: 0.2rem 0.6rem; border-radius: 999px; }
+.sparkline-label { font-size: 0.75rem; color: var(--muted); margin: 0.75rem 0 0.15rem; }
+.chart-note { font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem; }
+.chart-tooltip { padding: 0.4rem 0.7rem; border-radius: 10px; font-size: 0.8rem; }
+.close-btn {
+  border: 1px solid rgba(127, 127, 127, 0.3); background: transparent; color: inherit;
+  border-radius: 999px; padding: 0.4rem 1rem; cursor: pointer; font: inherit;
+}
+.empty-note { color: var(--muted); }
+.check-today__list li { cursor: pointer; }
+
+/* ---- Softer surfaces (brief item 3): appended last so it wins the cascade ---- */
+.panel, .log-session, .check-today, .athlete-row, .metric-block, .calculated-load, button {
+  border-radius: 18px;
+}
+input, select { border-radius: 12px; }
+/* Softer surfaces — last rules win the cascade */
+.panel, .log-session, .check-today, .athlete-row,
+.metric-block, .calculated-load, button, .close-btn { border-radius: 18px; }
+input, select { border-radius: 12px; }
+.directory-row { border-radius: 14px; }
+.chart-legend span { border-radius: 999px; }
+
